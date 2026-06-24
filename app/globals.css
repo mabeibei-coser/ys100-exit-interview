@@ -1,0 +1,154 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #faf9f6;
+  --primary: #ffffff;
+  --secondary: #f1efe8;
+  --danger-bg: #fcebeb;
+  --warning-bg: #faeeda;
+  --text: #262521;
+  --text2: #6b6a64;
+  --text3: #9b9a94;
+  --text-danger: #a32d2d;
+  --text-warning: #854f0b;
+  --brand: #1f4e79;
+  --border: rgba(0, 0, 0, 0.12);
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--primary);
+  --color-secondary: var(--secondary);
+  --color-text: var(--text);
+  --color-text2: var(--text2);
+  --color-text3: var(--text3);
+  --color-brand: var(--brand);
+  --color-danger: var(--text-danger);
+  --font-sans: "微软雅黑", "Segoe UI", system-ui, sans-serif;
+}
+
+html,
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: "微软雅黑", "Segoe UI", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---- 通用小组件（够用即可，不追求设计系统） ---- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: 8px;
+  padding: 9px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background 0.15s, opacity 0.15s;
+}
+.btn-primary {
+  background: var(--brand);
+  color: #fff;
+}
+.btn-primary:hover {
+  opacity: 0.9;
+}
+.btn-ghost {
+  background: var(--primary);
+  color: var(--text);
+  border-color: var(--border);
+}
+.btn-ghost:hover {
+  background: var(--secondary);
+}
+.btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.btn:focus-visible,
+.chip:focus-visible,
+.score-cell:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--brand) 50%, transparent);
+  outline-offset: 2px;
+}
+
+.card {
+  background: var(--primary);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+.input {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 11px;
+  font-size: 14px;
+  background: #fff;
+  color: var(--text);
+}
+.input:focus {
+  outline: 2px solid color-mix(in srgb, var(--brand) 40%, transparent);
+  outline-offset: -1px;
+}
+
+.label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text2);
+}
+
+/* 打分宫格：选中态 */
+.score-cell {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 0;
+  text-align: center;
+  font-size: 13px;
+  cursor: pointer;
+  background: #fff;
+  user-select: none;
+  transition: all 0.12s;
+}
+.score-cell:hover {
+  border-color: var(--brand);
+}
+.score-cell[data-on="1"] {
+  background: var(--brand);
+  color: #fff;
+  border-color: var(--brand);
+  font-weight: 600;
+}
+
+/* 多选/单选 chip */
+.chip {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 6px 13px;
+  font-size: 13px;
+  cursor: pointer;
+  background: #fff;
+  user-select: none;
+  transition: all 0.12s;
+}
+.chip[data-on="1"] {
+  background: var(--brand);
+  color: #fff;
+  border-color: var(--brand);
+}
+.chip:active,
+.score-cell:active {
+  transform: scale(0.97);
+}
