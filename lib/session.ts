@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import bcrypt from "bcryptjs";
 import { getDb, now } from "./db";
 
-const BASE_PATH = process.env.BASE_PATH ?? "/d100";
+const BASE_PATH = process.env.BASE_PATH ?? "/ys100";
 
 export interface AppSession {
   staffId?: number;
@@ -20,7 +20,7 @@ const sessionOptions: SessionOptions = {
     secure: process.env.COOKIE_SECURE === "true",
     httpOnly: true,
     sameSite: "lax",
-    path: BASE_PATH, // cookie 只发给 /d100/* 路径，与 nginx 子路径对齐
+    path: BASE_PATH, // cookie 只发给 /ys100/* 路径，与 nginx 子路径对齐
     maxAge: 60 * 60 * 24 * 7,
   },
 };

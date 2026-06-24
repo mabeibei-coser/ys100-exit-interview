@@ -6,7 +6,7 @@ import path from "path";
 import fs from "fs";
 import { initSchema } from "../lib/ddl.mjs";
 
-const DB_PATH = process.env.DB_PATH ?? path.resolve(process.cwd(), "data", "exit-interview.db");
+const DB_PATH = process.env.DB_PATH ?? path.resolve(process.cwd(), "data", "ys100-exit-interview.db");
 fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
 const db = new Database(DB_PATH);
 initSchema(db);

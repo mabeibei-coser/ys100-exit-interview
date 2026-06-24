@@ -4,7 +4,7 @@ import fs from "fs";
 import { initSchema } from "./ddl.mjs";
 
 const DATA_DIR = path.resolve(process.cwd(), "data");
-const DEFAULT_DB = path.join(DATA_DIR, "exit-interview.db");
+const DEFAULT_DB = path.join(DATA_DIR, "ys100-exit-interview.db");
 const DB_PATH = process.env.DB_PATH ?? DEFAULT_DB;
 
 let _db: Database.Database | null = null;

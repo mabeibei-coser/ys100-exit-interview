@@ -1,4 +1,4 @@
-# D100 离职访谈记录工具
+# YS100 离职访谈记录工具
 
 一线离职员工电话回访的多人在线记录工具。回访员各自登录、看到分给自己的人、边打电话边填电子记录表；管理员在后台看实时分析报告 + 明细总表 + 管人员权限。
 
@@ -27,7 +27,7 @@
 npm install
 cp .env.example .env.local         # 填 SESSION_PASSWORD / TEAM_PASSWORD
 node scripts/init-super.mjs "你的名字" "你的口令"   # 建超管
-npm run dev                         # http://localhost:3100/d100/login
+npm run dev                         # http://localhost:3100/ys100/login
 ```
 
 造演示数据（可选）：`node scripts/seed.mjs`
@@ -41,7 +41,7 @@ npm run dev                         # http://localhost:3100/d100/login
 | `TEAM_PASSWORD` | 回访员共享团队口令 |
 | `COOKIE_SECURE` | 生产 https 置 `true` |
 | `DB_PATH` | SQLite 路径，**绝不放坚果云/OneDrive 同步目录** |
-| `BASE_PATH` | 子路径，默认 `/d100` |
+| `BASE_PATH` | 子路径，默认 `/ys100` |
 | `PLANNED_TOTAL` | 计划回访总人数（完成率分母），默认 100 |
 | `HEADCOUNT_TOTAL` | 在岗总人数（可选，给了才算真实离职率） |
 
@@ -58,7 +58,7 @@ npm run dev                         # http://localhost:3100/d100/login
 
 ## 部署
 
-子路径 `/d100` + PM2 + nginx，走 `tencent-deploy` skill。生产 `.env` 设 `COOKIE_SECURE=true`、独立 `DB_PATH`、强 `SESSION_PASSWORD`/`TEAM_PASSWORD`。
+子路径 `/ys100` + PM2 + nginx，走 `tencent-deploy` skill。生产 `.env` 设 `COOKIE_SECURE=true`、独立 `DB_PATH`、强 `SESSION_PASSWORD`/`TEAM_PASSWORD`。
 
 ## 字段单一事实源
 

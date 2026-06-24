@@ -2,7 +2,7 @@ import type { NextConfig } from "next";
 import pkg from "./package.json";
 
 // 生产 nginx 反代子路径；本机 dev 也带前缀，保证两边一致。
-const BASE_PATH = process.env.BASE_PATH ?? "/d100";
+const BASE_PATH = process.env.BASE_PATH ?? "/ys100";
 
 const nextConfig: NextConfig = {
   // better-sqlite3 是原生模块，必须外部化，不能被打包
