@@ -37,12 +37,13 @@ export default function LoginForm({ callers, admins }: { callers: string[]; admi
   }
 
   return (
-    <form onSubmit={submit} className="absolute inset-0 z-10" aria-label="登录工作台">
+    <form onSubmit={submit} className="absolute inset-0 z-10" aria-label="登录工作台" autoComplete="off">
       <label className="sr-only" htmlFor="login-name">
         选择你的名字
       </label>
       <select
         id="login-name"
+        autoComplete="off"
         className={`absolute left-[57.25%] top-[46.2%] h-[6.55%] w-[29.05%] rounded-[8px] border border-transparent bg-transparent px-[1.1%] text-[clamp(12px,1.05vw,18px)] outline-none transition focus:border-[#6f93b8] focus:ring-4 focus:ring-[#d7e5f3] ${
           name ? "text-[#20242a]" : "text-transparent"
         }`}
