@@ -1,24 +1,24 @@
 import ExcelJS from "exceljs";
 import { requireAdmin } from "@/lib/session";
 import { getDb } from "@/lib/db";
-import { DIMENSIONS } from "@/lib/schema";
+import { DIMS, POINT_LABEL, DIM_BY_KEY } from "@/lib/schema";
 
 export const dynamic = "force-dynamic";
 
-function arr(v: unknown): string {
-  if (!v) return "";
-  try {
-    const a = JSON.parse(String(v));
-    return Array.isArray(a) ? a.join(" / ") : "";
-  } catch {
-    return "";
-  }
-}
 function dt(ts: unknown): string {
   if (typeof ts !== "number") return "";
   const d = new Date(ts);
   const p = (n: number) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+function parse(v: unknown): Record<string, unknown> {
+  if (!v) return {};
+  try {
+    const o = JSON.parse(String(v));
+    return o && typeof o === "object" ? o : {};
+  } catch {
+    return {};
+  }
 }
 
 export async function GET() {
@@ -40,6 +40,7 @@ export async function GET() {
     { header: "区域", key: "region", width: 10 },
     { header: "项目", key: "project", width: 14 },
     { header: "岗位", key: "position", width: 10 },
+    { header: "条线", key: "line", width: 8 },
     { header: "年龄段", key: "age_band", width: 8 },
     { header: "入职日期", key: "hire_date", width: 12 },
     { header: "离职日期", key: "leave_date", width: 12 },
@@ -47,29 +48,33 @@ export async function GET() {
     { header: "回访员", key: "interviewer", width: 10 },
     { header: "接通情况", key: "contact_status", width: 9 },
     { header: "离职类型", key: "leave_type", width: 12 },
-    ...DIMENSIONS.map((d) => ({ header: d.label, key: d.key, width: 9 })),
-    { header: "主因", key: "main_reason", width: 14 },
-    { header: "薪酬细分", key: "pay_detail", width: 18 },
-    { header: "去向", key: "destination", width: 14 },
-    { header: "吸引点", key: "attraction", width: 18 },
-    { header: "收入对比", key: "income_compare", width: 9 },
-    { header: "差额(元/月)", key: "income_gap", width: 11 },
+    ...DIMS.map((d) => ({ header: d.name, key: "hit_" + d.key, width: 24 })),
+    { header: "影响最大一维", key: "top_dim", width: 12 },
     { header: "可挽回", key: "retainable", width: 10 },
-    { header: "改啥能留", key: "retain_condition", width: 18 },
-    { header: "推荐朋友", key: "recommend", width: 8 },
-    { header: "回聘意愿", key: "rehire", width: 8 },
-    { header: "原话引述", key: "verbatim_quote", width: 36 },
-    { header: "一句话真因", key: "one_line_summary", width: 24 },
+    { header: "去向", key: "destination", width: 12 },
+    { header: "原话摘录(按维度)", key: "quotes", width: 50 },
   ];
 
   for (const r of rows) {
-    ws.addRow({
+    const hits = parse(r.hits_json);
+    const quotes = parse(r.quotes_json);
+    const row: Record<string, unknown> = {
       ...r,
       created_at: dt(r.created_at),
       status: r.status === "completed" ? "已完成" : "草稿",
-      pay_detail: arr(r.pay_detail_json),
-      attraction: arr(r.attraction_json),
-    });
+      top_dim: r.top_dim ? DIM_BY_KEY[String(r.top_dim)]?.name ?? r.top_dim : "",
+    };
+    for (const d of DIMS) {
+      const keys = Array.isArray(hits[d.key]) ? (hits[d.key] as string[]) : [];
+      row["hit_" + d.key] = keys.map((k) => POINT_LABEL[k] ?? k).join(" / ");
+    }
+    row.quotes = DIMS.map((d) => {
+      const q = typeof quotes[d.key] === "string" ? (quotes[d.key] as string).trim() : "";
+      return q ? `${d.short}：${q}` : "";
+    })
+      .filter(Boolean)
+      .join("；");
+    ws.addRow(row);
   }
   ws.getRow(1).font = { bold: true };
   ws.views = [{ state: "frozen", ySplit: 1 }];

@@ -7,6 +7,7 @@ export const IMPORT_FIELDS = [
   "region",
   "project",
   "position",
+  "line",
   "age_band",
   "gender",
   "hire_date",
@@ -24,6 +25,7 @@ export const FIELD_LABEL: Record<ImportField, string> = {
   region: "区域",
   project: "项目",
   position: "岗位",
+  line: "条线",
   age_band: "年龄段",
   gender: "性别",
   hire_date: "入职日期",
@@ -39,6 +41,7 @@ const SYNONYMS: Record<ImportField, string[]> = {
   region: ["区域", "大区", "区域公司", "所属区域", "region"],
   project: ["项目", "项目名称", "项目名", "服务项目", "所属项目", "project"],
   position: ["岗位", "职位", "工种", "岗位名称", "position"],
+  line: ["条线", "业务线", "序列", "产品线", "业态", "条线分类", "板块"],
   age_band: ["年龄段", "年龄"],
   gender: ["性别", "gender"],
   hire_date: ["入职日期", "入职时间", "入职", "入职日"],
@@ -73,6 +76,7 @@ export interface TargetInput {
   region: string | null;
   project: string | null;
   position: string | null;
+  line: string | null;
   age_band: string | null;
   gender: string | null;
   hire_date: string | null;
@@ -147,6 +151,7 @@ export function buildTargets(
       region: cell(row, map.region),
       project: cell(row, map.project),
       position: cell(row, map.position),
+      line: cell(row, map.line),
       age_band: ageBand,
       gender: cell(row, map.gender),
       hire_date: cell(row, map.hire_date),

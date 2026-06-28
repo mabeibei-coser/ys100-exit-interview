@@ -132,6 +132,46 @@ body {
   font-weight: 600;
 }
 
+/* 问题点勾选行（六维诊断表多选） */
+.check-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.12s;
+}
+.check-row:hover {
+  border-color: var(--brand);
+}
+.check-row[data-on="1"] {
+  background: color-mix(in srgb, var(--brand) 8%, #fff);
+  border-color: var(--brand);
+}
+.check-box {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+  border: 1.5px solid var(--border);
+  border-radius: 5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  line-height: 1;
+  color: #fff;
+  background: #fff;
+}
+.check-row[data-on="1"] .check-box {
+  background: var(--brand);
+  border-color: var(--brand);
+}
+
 /* 多选/单选 chip */
 .chip {
   border: 1px solid var(--border);

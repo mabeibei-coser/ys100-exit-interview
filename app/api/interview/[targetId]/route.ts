@@ -1,14 +1,8 @@
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/session";
 import { getDb, now } from "@/lib/db";
+import { DIMS } from "@/lib/schema";
 
-// 0-3 整数或 null
-function score(v: unknown): number | null {
-  if (v === null || v === undefined || v === "") return null;
-  const n = Number(v);
-  if (!Number.isFinite(n)) return null;
-  return Math.max(0, Math.min(3, Math.round(n)));
-}
 function num(v: unknown): number | null {
   if (v === null || v === undefined || v === "") return null;
   const n = Number(v);
@@ -19,9 +13,36 @@ function text(v: unknown): string | null {
   const s = String(v).trim();
   return s === "" ? null : s;
 }
-function jsonArr(v: unknown): string | null {
-  if (Array.isArray(v) && v.length) return JSON.stringify(v);
-  return null;
+
+const DIM_KEYS = DIMS.map((d) => d.key);
+const POINTS_BY_DIM: Record<string, Set<string>> = Object.fromEntries(
+  DIMS.map((d) => [d.key, new Set(d.points.map((p) => p.key))])
+);
+
+/** 只收已知维度下的已知问题点 key，过滤脏数据；空维度不写。 */
+function cleanHits(v: unknown): string | null {
+  if (!v || typeof v !== "object") return null;
+  const out: Record<string, string[]> = {};
+  for (const dim of DIM_KEYS) {
+    const raw = (v as Record<string, unknown>)[dim];
+    if (!Array.isArray(raw)) continue;
+    const valid = raw.filter((k): k is string => typeof k === "string" && POINTS_BY_DIM[dim].has(k));
+    if (valid.length) out[dim] = valid;
+  }
+  return Object.keys(out).length ? JSON.stringify(out) : null;
+}
+/** 每维原话摘录，只收已知维度的非空文本。 */
+function cleanQuotes(v: unknown): string | null {
+  if (!v || typeof v !== "object") return null;
+  const out: Record<string, string> = {};
+  for (const dim of DIM_KEYS) {
+    const t = text((v as Record<string, unknown>)[dim]);
+    if (t) out[dim] = t;
+  }
+  return Object.keys(out).length ? JSON.stringify(out) : null;
+}
+function dimKeyOrNull(v: unknown): string | null {
+  return typeof v === "string" && (DIM_KEYS as string[]).includes(v) ? v : null;
 }
 
 export async function POST(req: Request, { params }: { params: Promise<{ targetId: string }> }) {
@@ -60,6 +81,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ targetI
     region: text(b.region),
     project: text(b.project),
     position: text(b.position),
+    line: text(b.line),
     age_band: text(b.age_band),
     hire_date: text(b.hire_date),
     leave_date: text(b.leave_date),
@@ -67,27 +89,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ targetI
     interviewer: text(b.interviewer),
     contact_status: text(b.contact_status),
     leave_type: text(b.leave_type),
-    score_salary: score(b.score_salary),
-    score_social: score(b.score_social),
-    score_schedule: score(b.score_schedule),
-    score_manager: score(b.score_manager),
-    score_promotion: score(b.score_promotion),
-    score_commute: score(b.score_commute),
-    score_family: score(b.score_family),
-    score_prospect: score(b.score_prospect),
-    score_colleague: score(b.score_colleague),
-    main_reason: text(b.main_reason),
-    pay_detail_json: jsonArr(b.pay_detail),
-    destination: text(b.destination),
-    attraction_json: jsonArr(b.attraction),
-    income_compare: text(b.income_compare),
-    income_gap: num(b.income_gap),
+    hits_json: cleanHits(b.hits),
+    quotes_json: cleanQuotes(b.quotes),
     retainable: text(b.retainable),
-    retain_condition: text(b.retain_condition),
-    recommend: text(b.recommend),
-    rehire: text(b.rehire),
-    verbatim_quote: text(b.verbatim_quote),
-    one_line_summary: text(b.one_line_summary),
+    destination: text(b.destination),
+    top_dim: dimKeyOrNull(b.top_dim),
     recorder_staff_id: s.staffId ?? null,
   };
 
@@ -112,7 +118,6 @@ export async function POST(req: Request, { params }: { params: Promise<{ targetI
       const r = db.prepare(insSql).run({ ...cols, created_at: ts, updated_at: ts });
       interviewId = Number(r.lastInsertRowid);
     }
-    // 提交即把派工标记完成；存草稿不改派工状态（除非之前是未接通，回到待拨）
     if (status === "completed") {
       db.prepare("UPDATE targets SET call_status = 'done', interview_id = ?, updated_at = ? WHERE id = ?").run(
         interviewId,

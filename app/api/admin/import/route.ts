@@ -84,9 +84,9 @@ export async function POST(req: Request) {
   );
   const existsTarget = db.prepare("SELECT id FROM targets WHERE name = ? AND IFNULL(phone,'') = IFNULL(?,'')");
   const insTarget = db.prepare(`INSERT INTO targets
-    (name,phone,region,project,position,age_band,gender,hire_date,leave_date,tenure_months,leave_type,
+    (name,phone,region,project,position,line,age_band,gender,hire_date,leave_date,tenure_months,leave_type,
      assigned_to,assigned_staff_id,call_status,import_batch,created_at,updated_at)
-    VALUES (@name,@phone,@region,@project,@position,@age_band,@gender,@hire_date,@leave_date,@tenure_months,@leave_type,
+    VALUES (@name,@phone,@region,@project,@position,@line,@age_band,@gender,@hire_date,@leave_date,@tenure_months,@leave_type,
      @assigned_to,@assigned_staff_id,'pending',@batch,@ts,@ts)`);
 
   let imported = 0;

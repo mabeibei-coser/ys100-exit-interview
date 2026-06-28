@@ -3,22 +3,21 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { withBase } from "@/lib/url";
 import {
-  DIMENSIONS,
-  SCORE_LEVELS,
+  DIMS,
   GENDERS,
   AGE_BANDS,
+  LINES,
   CONTACT_STATUS,
   LEAVE_TYPES,
-  PAY_DETAILS,
-  DESTINATIONS,
-  ATTRACTIONS,
-  INCOME_COMPARE,
   RETAINABLE,
-  YES_NO,
+  DESTINATIONS,
+  type DimDef,
 } from "@/lib/schema";
 import ScriptCard from "./script-card";
 
 type Dict = Record<string, unknown>;
+type Hits = Record<string, string[]>;
+type Quotes = Record<string, string>;
 
 function genUuid(): string {
   try {
@@ -27,18 +26,20 @@ function genUuid(): string {
     return "u-" + Date.now() + "-" + Math.floor(Math.random() * 1e9);
   }
 }
-
-function parseArr(v: unknown): string[] {
-  if (Array.isArray(v)) return v as string[];
+function str(v: unknown): string {
+  return v === null || v === undefined ? "" : String(v);
+}
+function parseObj(v: unknown): Record<string, unknown> {
+  if (v && typeof v === "object") return v as Record<string, unknown>;
   if (typeof v === "string" && v) {
     try {
-      const a = JSON.parse(v);
-      return Array.isArray(a) ? a : [];
+      const o = JSON.parse(v);
+      return o && typeof o === "object" ? o : {};
     } catch {
-      return [];
+      return {};
     }
   }
-  return [];
+  return {};
 }
 
 export default function RecordForm({
@@ -55,8 +56,10 @@ export default function RecordForm({
   nextTargetId: number | null;
 }) {
   const src = interview ?? {};
-  const pre = (k: string, fallback: unknown = "") =>
-    src[k] ?? target[k] ?? fallback;
+  const pre = (k: string, fallback: unknown = "") => src[k] ?? target[k] ?? fallback;
+
+  const initHits = parseObj(src["hits_json"]);
+  const initQuotes = parseObj(src["quotes_json"]);
 
   const [f, setF] = useState<Dict>(() => ({
     uuid: (interview?.uuid as string) || genUuid(),
@@ -65,6 +68,7 @@ export default function RecordForm({
     region: pre("region"),
     project: pre("project"),
     position: pre("position"),
+    line: pre("line"),
     age_band: pre("age_band"),
     hire_date: pre("hire_date"),
     leave_date: pre("leave_date"),
@@ -72,30 +76,25 @@ export default function RecordForm({
     interviewer: src["interviewer"] ?? interviewerName,
     contact_status: pre("contact_status"),
     leave_type: pre("leave_type"),
-    score_salary: src["score_salary"] ?? null,
-    score_social: src["score_social"] ?? null,
-    score_schedule: src["score_schedule"] ?? null,
-    score_manager: src["score_manager"] ?? null,
-    score_promotion: src["score_promotion"] ?? null,
-    score_commute: src["score_commute"] ?? null,
-    score_family: src["score_family"] ?? null,
-    score_prospect: src["score_prospect"] ?? null,
-    score_colleague: src["score_colleague"] ?? null,
-    main_reason: pre("main_reason"),
-    pay_detail: parseArr(src["pay_detail_json"]),
-    destination: pre("destination"),
-    attraction: parseArr(src["attraction_json"]),
-    income_compare: pre("income_compare"),
-    income_gap: src["income_gap"] ?? "",
     retainable: pre("retainable"),
-    retain_condition: pre("retain_condition"),
-    recommend: pre("recommend"),
-    rehire: pre("rehire"),
-    verbatim_quote: pre("verbatim_quote"),
-    one_line_summary: pre("one_line_summary"),
+    destination: pre("destination"),
+    top_dim: pre("top_dim"),
   }));
+  const [hits, setHits] = useState<Hits>(() => {
+    const h: Hits = {};
+    for (const d of DIMS) {
+      const a = initHits[d.key];
+      h[d.key] = Array.isArray(a) ? (a as string[]) : [];
+    }
+    return h;
+  });
+  const [quotes, setQuotes] = useState<Quotes>(() => {
+    const q: Quotes = {};
+    for (const d of DIMS) q[d.key] = typeof initQuotes[d.key] === "string" ? (initQuotes[d.key] as string) : "";
+    return q;
+  });
 
-  const [submitted, setSubmitted] = useState((interview?.status as string) === "completed");
+  const [submitted] = useState((interview?.status as string) === "completed");
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">("idle");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
@@ -117,20 +116,33 @@ export default function RecordForm({
   }
 
   const set = (k: string, v: unknown) => setF((p) => ({ ...p, [k]: v }));
+  const togglePoint = (dim: string, pk: string) =>
+    setHits((p) => {
+      const cur = new Set(p[dim] ?? []);
+      if (cur.has(pk)) cur.delete(pk);
+      else cur.add(pk);
+      return { ...p, [dim]: [...cur] };
+    });
+  const setQuote = (dim: string, v: string) => setQuotes((p) => ({ ...p, [dim]: v }));
+
+  const payload = useCallback(
+    (status: "draft" | "completed") => ({ ...f, hits, quotes, status }),
+    [f, hits, quotes]
+  );
 
   const save = useCallback(
     async (status: "draft" | "completed") => {
       const res = await fetch(withBase(`/api/interview/${targetId}`), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...f, status }),
+        body: JSON.stringify(payload(status)),
       });
       if (!res.ok) {
         const d = await res.json().catch(() => ({}));
         throw new Error(d.error || "保存失败");
       }
     },
-    [f, targetId]
+    [payload, targetId]
   );
 
   // 自动存草稿（改动后 1.5s）
@@ -153,12 +165,12 @@ export default function RecordForm({
     return () => {
       if (saveTimer.current) clearTimeout(saveTimer.current);
     };
-  }, [f, save, submitted]);
+  }, [f, hits, quotes, save, submitted]);
 
   async function onSubmit(goNext = false) {
     setErr("");
     if (!f.contact_status) {
-      setErr("请先在最上方选「接通情况」");
+      setErr("请先在最上方选「接通情况（深聊 / 未深聊）」");
       bannerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
       return;
     }
@@ -204,21 +216,19 @@ export default function RecordForm({
       </header>
 
       <div className="lg:grid lg:grid-cols-[300px_1fr] gap-5 max-w-5xl mx-auto p-4 lg:p-5">
-        {/* 话术卡：桌面固定在左，手机折叠在上 */}
         <aside className="lg:sticky lg:top-[60px] lg:self-start mb-4 lg:mb-0">
           <ScriptCard />
         </aside>
 
-        {/* 表单 */}
         <div className="flex flex-col gap-5">
-          {/* 通话横幅：在打谁 + 电话 + 先选接通情况 */}
+          {/* 通话横幅 */}
           <div ref={bannerRef} className="card p-4" style={{ borderColor: "var(--brand)" }}>
             <div className="flex items-end justify-between flex-wrap gap-2">
               <div>
                 <div className="text-xs text-[var(--text2)]">正在回访</div>
                 <div className="text-xl font-semibold">{str(f.name) || "—"}</div>
                 <div className="text-sm text-[var(--text2)] mt-0.5">
-                  {[str(f.project), str(f.position), str(f.region)].filter(Boolean).join(" · ") || "—"}
+                  {[str(f.project), str(f.position), str(f.line), str(f.region)].filter(Boolean).join(" · ") || "—"}
                 </div>
               </div>
               {phone && (
@@ -226,12 +236,7 @@ export default function RecordForm({
                   <a href={`tel:${phone}`} className="text-lg font-semibold text-[var(--brand)]">
                     {phone}
                   </a>
-                  <button
-                    type="button"
-                    onClick={copyPhone}
-                    className="btn btn-ghost ml-2 align-middle"
-                    style={{ padding: "4px 10px", fontSize: 12 }}
-                  >
+                  <button type="button" onClick={copyPhone} className="btn btn-ghost ml-2 align-middle" style={{ padding: "4px 10px", fontSize: 12 }}>
                     {copied ? "已复制" : "复制号码"}
                   </button>
                 </div>
@@ -240,10 +245,12 @@ export default function RecordForm({
             <div className="mt-3">
               <label className="label block mb-1.5">接通情况（先选这一项）</label>
               <Radio options={CONTACT_STATUS} value={str(f.contact_status)} onChange={(v) => set("contact_status", v)} />
+              <p className="text-xs text-[var(--text3)] mt-1">真敷衍别硬刨，记「未深聊」——原因分析只算深聊样本，别编原因。</p>
             </div>
           </div>
 
-          <Section title="基本信息" hint="从名单预填，可改">
+          {/* 基本信息 */}
+          <Section title="基本信息" hint="系统带出、以系统为准，可改">
             <div className="grid grid-cols-2 gap-3">
               <Field label="姓名">
                 <input className="input" value={str(f.name)} onChange={(e) => set("name", e.target.value)} />
@@ -260,6 +267,14 @@ export default function RecordForm({
               <Field label="岗位">
                 <input className="input" value={str(f.position)} onChange={(e) => set("position", e.target.value)} />
               </Field>
+              <Field label="条线">
+                <select className="input" value={str(f.line)} onChange={(e) => set("line", e.target.value)}>
+                  <option value="">—</option>
+                  {LINES.map((l) => (
+                    <option key={l} value={l}>{l}</option>
+                  ))}
+                </select>
+              </Field>
               <Field label="年龄段">
                 <select className="input" value={str(f.age_band)} onChange={(e) => set("age_band", e.target.value)}>
                   <option value="">—</option>
@@ -268,14 +283,14 @@ export default function RecordForm({
                   ))}
                 </select>
               </Field>
+              <Field label="在职月数">
+                <input className="input" type="number" step="0.1" value={str(f.tenure_months)} onChange={(e) => set("tenure_months", e.target.value)} />
+              </Field>
               <Field label="入职日期">
                 <input className="input" placeholder="如 2024-05" value={str(f.hire_date)} onChange={(e) => set("hire_date", e.target.value)} />
               </Field>
               <Field label="离职日期">
                 <input className="input" placeholder="如 2026-05" value={str(f.leave_date)} onChange={(e) => set("leave_date", e.target.value)} />
-              </Field>
-              <Field label="在职月数">
-                <input className="input" type="number" step="0.1" value={str(f.tenure_months)} onChange={(e) => set("tenure_months", e.target.value)} />
               </Field>
               <Field label="回访员">
                 <input className="input bg-[var(--secondary)]" value={str(f.interviewer)} readOnly />
@@ -287,83 +302,48 @@ export default function RecordForm({
             </Field>
           </Section>
 
-          <Section title="离职原因 · 逐项打分" hint="每个维度问：对您下决心走，有没有影响？">
-            <div className="flex flex-col gap-1.5">
-              <div className="grid grid-cols-[1.4fr_repeat(4,1fr)] gap-2 text-xs text-[var(--text3)] px-1">
-                <div>维度</div>
-                {SCORE_LEVELS.map((l) => (
-                  <div key={l.v} className="text-center">{l.v} {l.label}</div>
-                ))}
-              </div>
-              {DIMENSIONS.map((d) => (
-                <ScoreRow
-                  key={d.key}
-                  label={d.label}
-                  value={f[d.key] as number | null}
-                  onChange={(v) => set(d.key, v)}
-                />
-              ))}
-            </div>
-            <Field label="最主要的一个（主因）" className="mt-3">
-              <input className="input" value={str(f.main_reason)} onChange={(e) => set("main_reason", e.target.value)} />
-            </Field>
-          </Section>
+          {/* 开口提示 */}
+          <div className="card p-3.5" style={{ background: "var(--secondary)", borderColor: "transparent" }}>
+            <span className="text-sm font-semibold text-[var(--brand)]">开口：</span>
+            <span className="text-sm">“当时主要是出于什么考虑，让您最终决定离开咱们项目的呢？”</span>
+            <span className="text-xs text-[var(--text3)]">　先让他自己说，下面六维他没说到的挑着补问；每维命中就打勾、记原话。</span>
+          </div>
 
-          <Section title="薪酬细分" hint="沾钱才填，可多选">
-            <ChipMulti options={PAY_DETAILS} value={f.pay_detail as string[]} onChange={(v) => set("pay_detail", v)} />
-          </Section>
-
-          <Section title="去向">
-            <Field label="下一份工作">
-              <ChipSingle options={DESTINATIONS} value={str(f.destination)} onChange={(v) => set("destination", v)} />
-            </Field>
-            <Field label="最吸引点（多选）" className="mt-3">
-              <ChipMulti options={ATTRACTIONS} value={f.attraction as string[]} onChange={(v) => set("attraction", v)} />
-            </Field>
-            <div className="grid grid-cols-2 gap-3 mt-3">
-              <Field label="收入对比">
-                <ChipSingle options={INCOME_COMPARE} value={str(f.income_compare)} onChange={(v) => set("income_compare", v)} />
-              </Field>
-              <Field label="差约（元/月）">
-                <input className="input" type="number" value={str(f.income_gap)} onChange={(e) => set("income_gap", e.target.value)} />
-              </Field>
-            </div>
-          </Section>
-
-          <Section title="可挽回性 & 健康度">
-            <Field label="可挽回">
-              <ChipSingle options={RETAINABLE} value={str(f.retainable)} onChange={(v) => set("retainable", v)} />
-            </Field>
-            <Field label="改啥能留" className="mt-3">
-              <input className="input" value={str(f.retain_condition)} onChange={(e) => set("retain_condition", e.target.value)} />
-            </Field>
-            <div className="grid grid-cols-2 gap-3 mt-3">
-              <Field label="推荐朋友来">
-                <ChipSingle options={YES_NO} value={str(f.recommend)} onChange={(v) => set("recommend", v)} />
-              </Field>
-              <Field label="回聘意愿">
-                <ChipSingle options={YES_NO} value={str(f.rehire)} onChange={(v) => set("rehire", v)} />
-              </Field>
-            </div>
-          </Section>
-
-          <Section title="⭐ 原话引述" hint="照原话记，别概括，1–2 句">
-            <textarea
-              className="input min-h-[80px] resize-y"
-              value={str(f.verbatim_quote)}
-              onChange={(e) => set("verbatim_quote", e.target.value)}
+          {/* 六维 + 个人兜底 */}
+          {DIMS.map((d) => (
+            <DimCard
+              key={d.key}
+              dim={d}
+              hit={hits[d.key] ?? []}
+              quote={quotes[d.key] ?? ""}
+              onToggle={(pk) => togglePoint(d.key, pk)}
+              onQuote={(v) => setQuote(d.key, v)}
             />
-            <Field label="回访员一句话真因总结" className="mt-3">
-              <input className="input" value={str(f.one_line_summary)} onChange={(e) => set("one_line_summary", e.target.value)} />
+          ))}
+
+          {/* 收尾 */}
+          <Section title="收尾" hint="可挽回 + 去向 + 影响最大一维">
+            <Field label="可挽回（“这问题解决了您还愿意接着干吗？”）">
+              <Radio options={RETAINABLE} value={str(f.retainable)} onChange={(v) => set("retainable", v)} />
+            </Field>
+            <Field label="去向（“您现在去哪儿工作了？”）" className="mt-3">
+              <Radio options={DESTINATIONS} value={str(f.destination)} onChange={(v) => set("destination", v)} />
+            </Field>
+            <Field label="影响最大的一维（选填）" className="mt-3">
+              <select className="input" value={str(f.top_dim)} onChange={(e) => set("top_dim", e.target.value)}>
+                <option value="">—</option>
+                {DIMS.map((d) => (
+                  <option key={d.key} value={d.key}>{(d.no ? d.no + " " : "") + d.name}</option>
+                ))}
+              </select>
             </Field>
           </Section>
 
-          {/* 给底部常驻操作条留空间 */}
           <div className="h-24" />
         </div>
       </div>
 
-      {/* 底部常驻操作条：滚到哪都能提交 */}
+      {/* 底部常驻操作条 */}
       <div className="fixed bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur border-t border-[var(--border)]">
         <div className="max-w-5xl mx-auto px-4 lg:px-5 py-3 flex items-center gap-3">
           {err && <span className="text-sm text-[var(--text-danger)] mr-auto">{err}</span>}
@@ -385,9 +365,89 @@ export default function RecordForm({
   );
 }
 
-// ---- 小组件 ----
-function str(v: unknown): string {
-  return v === null || v === undefined ? "" : String(v);
+// ---- 维度卡 ----
+function DimCard({
+  dim,
+  hit,
+  quote,
+  onToggle,
+  onQuote,
+}: {
+  dim: DimDef;
+  hit: string[];
+  quote: string;
+  onToggle: (pk: string) => void;
+  onQuote: (v: string) => void;
+}) {
+  const on = new Set(hit);
+  const groups: Array<{ label?: string; points: typeof dim.points }> = dim.points.some((p) => p.group)
+    ? [
+        { label: "精神", points: dim.points.filter((p) => p.group === "精神") },
+        { label: "物质", points: dim.points.filter((p) => p.group === "物质") },
+      ]
+    : [{ points: dim.points }];
+
+  return (
+    <section className="card p-4">
+      <div className="flex items-center gap-2 flex-wrap">
+        <h2 className="font-semibold" style={{ color: dim.color }}>
+          {(dim.no ? dim.no + " " : "") + dim.name}
+        </h2>
+        <span className="text-[11px] px-2 py-0.5 rounded-full" style={{ background: "var(--secondary)", color: "var(--text2)" }}>
+          {dim.tag}
+        </span>
+        {dim.note && <span className="text-xs font-semibold text-[var(--text-danger)]">{dim.note}</span>}
+        {hit.length > 0 && (
+          <span className="ml-auto text-xs px-2 py-0.5 rounded-full" style={{ background: "var(--danger-bg)", color: "var(--text-danger)" }}>
+            命中 {hit.length}
+          </span>
+        )}
+      </div>
+      <p className="text-sm text-[var(--text2)] mt-1.5 leading-relaxed">“{dim.question}”</p>
+
+      <div className="mt-3 flex flex-col gap-1.5">
+        {groups.map((g, gi) => (
+          <div key={gi}>
+            {g.label && <div className="text-xs font-semibold text-[var(--text3)] mt-1 mb-1">{g.label}</div>}
+            <div className="flex flex-col gap-1.5">
+              {g.points.map((p) => (
+                <Check key={p.key} on={on.has(p.key)} label={p.label} onClick={() => onToggle(p.key)} />
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <textarea
+        className="input min-h-[52px] resize-y mt-3"
+        placeholder="原话摘录：照原话记 1–2 句，别概括…"
+        value={quote}
+        onChange={(e) => onQuote(e.target.value)}
+      />
+    </section>
+  );
+}
+
+function Check({ on, label, onClick }: { on: boolean; label: string; onClick: () => void }) {
+  return (
+    <div
+      role="checkbox"
+      aria-checked={on}
+      tabIndex={0}
+      onClick={onClick}
+      onKeyDown={(e) => {
+        if (e.key === " " || e.key === "Enter") {
+          e.preventDefault();
+          onClick();
+        }
+      }}
+      className="check-row"
+      data-on={on ? 1 : 0}
+    >
+      <span className="check-box" aria-hidden>{on ? "✓" : ""}</span>
+      <span className="text-sm leading-snug">{label}</span>
+    </div>
+  );
 }
 
 function Section({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
@@ -401,15 +461,7 @@ function Section({ title, hint, children }: { title: string; hint?: string; chil
   );
 }
 
-function Field({
-  label,
-  children,
-  className = "",
-}: {
-  label: string;
-  children: React.ReactNode;
-  className?: string;
-}) {
+function Field({ label, children, className = "" }: { label: string; children: React.ReactNode; className?: string }) {
   return (
     <div className={className}>
       <label className="label block mb-1.5">{label}</label>
@@ -418,78 +470,11 @@ function Field({
   );
 }
 
-function ScoreRow({
-  label,
-  value,
-  onChange,
-}: {
-  label: string;
-  value: number | null;
-  onChange: (v: number | null) => void;
-}) {
-  return (
-    <div className="grid grid-cols-[1.4fr_repeat(4,1fr)] gap-2 items-center">
-      <div className="text-sm">{label}</div>
-      {SCORE_LEVELS.map((l) => (
-        <div
-          key={l.v}
-          className="score-cell"
-          data-on={value === l.v ? 1 : 0}
-          onClick={() => onChange(value === l.v ? null : l.v)}
-        >
-          {l.v}
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function Radio({
-  options,
-  value,
-  onChange,
-}: {
-  options: readonly string[];
-  value: string;
-  onChange: (v: string) => void;
-}) {
+function Radio({ options, value, onChange }: { options: readonly string[]; value: string; onChange: (v: string) => void }) {
   return (
     <div className="flex flex-wrap gap-2">
       {options.map((o) => (
         <div key={o} className="chip" data-on={value === o ? 1 : 0} onClick={() => onChange(value === o ? "" : o)}>
-          {o}
-        </div>
-      ))}
-    </div>
-  );
-}
-
-const ChipSingle = Radio;
-
-function ChipMulti({
-  options,
-  value,
-  onChange,
-}: {
-  options: readonly string[];
-  value: string[];
-  onChange: (v: string[]) => void;
-}) {
-  const on = new Set(value);
-  return (
-    <div className="flex flex-wrap gap-2">
-      {options.map((o) => (
-        <div
-          key={o}
-          className="chip"
-          data-on={on.has(o) ? 1 : 0}
-          onClick={() => {
-            const next = new Set(on);
-            if (next.has(o)) next.delete(o);
-            else next.add(o);
-            onChange([...next]);
-          }}
-        >
           {o}
         </div>
       ))}
