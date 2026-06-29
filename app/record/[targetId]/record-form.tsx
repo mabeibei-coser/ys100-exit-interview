@@ -214,7 +214,7 @@ export default function RecordForm({
         </div>
       </header>
 
-      <div className="lg:grid lg:grid-cols-[300px_1fr] gap-5 max-w-5xl mx-auto p-4 lg:p-5">
+      <div className="lg:grid lg:grid-cols-[360px_1fr] gap-5 max-w-6xl mx-auto p-4 lg:p-5">
         <aside className="lg:sticky lg:top-[60px] lg:self-start mb-4 lg:mb-0">
           <ScriptCard />
         </aside>
