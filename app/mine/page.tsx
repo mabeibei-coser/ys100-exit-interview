@@ -37,7 +37,14 @@ export default async function MinePage() {
   return (
     <main className="min-h-screen">
       <header className="flex items-center justify-between px-5 py-3.5 bg-white border-b border-[var(--border)] sticky top-0 z-10">
-        <div className="font-semibold text-[var(--brand)]">我的派工</div>
+        <div className="flex items-center gap-3">
+          {(s.role === "admin" || s.role === "super") && (
+            <Link href="/admin" className="text-sm text-[var(--text2)] hover:text-[var(--text)]">
+              ← 返回首页
+            </Link>
+          )}
+          <div className="font-semibold text-[var(--brand)]">我的派工</div>
+        </div>
         <div className="flex items-center gap-4">
           <span className="text-sm text-[var(--text2)]">{s.name}</span>
           <LogoutButton />
