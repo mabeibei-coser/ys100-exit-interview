@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReportData, HeatRow } from "@/lib/aggregate";
-import { withBase } from "@/lib/url";
+import ReportExport from "./report-export";
 
 export default function ReportView({ report }: { report: ReportData }) {
   const o = report.overview;
@@ -9,15 +9,8 @@ export default function ReportView({ report }: { report: ReportData }) {
 
   return (
     <div>
-      {/* 导出 */}
-      <div className="flex items-center justify-end gap-2 mb-1">
-        <a href={withBase("/api/admin/report/export?download=1")} className="btn btn-ghost" style={{ padding: "6px 13px", fontSize: 13 }}>
-          导出 HTML
-        </a>
-        <a href={withBase("/api/admin/report/export?print=1")} target="_blank" rel="noopener noreferrer" className="btn btn-primary" style={{ padding: "6px 13px", fontSize: 13 }}>
-          下载 PDF
-        </a>
-      </div>
+      {/* 导出 HTML / 下载 PDF */}
+      <ReportExport />
 
       {/* 回访进度 */}
       <SecLabel>回访进度</SecLabel>

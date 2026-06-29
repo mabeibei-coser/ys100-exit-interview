@@ -5,8 +5,8 @@ import pkg from "./package.json";
 const BASE_PATH = process.env.BASE_PATH ?? "/ys100";
 
 const nextConfig: NextConfig = {
-  // better-sqlite3 是原生模块，必须外部化，不能被打包
-  serverExternalPackages: ["better-sqlite3", "exceljs"],
+  // 原生 / 重型模块外部化，不能被打包（puppeteer 走服务器已装的 Chrome 生成 PDF）
+  serverExternalPackages: ["better-sqlite3", "exceljs", "puppeteer", "puppeteer-core"],
   basePath: BASE_PATH,
   trailingSlash: true,
   turbopack: {
