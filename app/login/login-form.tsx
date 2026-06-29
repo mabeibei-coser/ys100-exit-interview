@@ -44,8 +44,8 @@ export default function LoginForm({ callers, admins }: { callers: string[]; admi
       <select
         id="login-name"
         autoComplete="off"
-        className={`absolute left-[57.25%] top-[46.2%] h-[6.55%] w-[29.05%] rounded-[8px] border border-transparent bg-transparent px-[1.1%] text-[clamp(12px,1.05vw,18px)] outline-none transition focus:border-[#6f93b8] focus:ring-4 focus:ring-[#d7e5f3] ${
-          name ? "text-[#20242a]" : "text-transparent"
+        className={`absolute left-[57.25%] top-[46.2%] h-[6.55%] w-[29.05%] rounded-[8px] border border-transparent bg-white px-[1.1%] text-[clamp(12px,1.05vw,18px)] outline-none transition focus:border-[#6f93b8] focus:ring-4 focus:ring-[#d7e5f3] ${
+          name ? "text-[#20242a]" : "text-[#9b9a94]"
         }`}
         value={name}
         onChange={(e) => {
@@ -81,7 +81,7 @@ export default function LoginForm({ callers, admins }: { callers: string[]; admi
       <input
         id="login-password"
         type={showPassword ? "text" : "password"}
-        className="absolute left-[57.25%] top-[61.0%] h-[6.55%] w-[25.6%] rounded-[8px] border border-transparent bg-transparent px-[1.1%] text-[clamp(12px,1.05vw,18px)] text-[#20242a] outline-none transition placeholder:text-transparent focus:border-[#6f93b8] focus:ring-4 focus:ring-[#d7e5f3]"
+        className="absolute left-[57.25%] top-[61.0%] h-[6.55%] w-[25.6%] rounded-[8px] border border-transparent bg-white px-[1.1%] text-[clamp(12px,1.05vw,18px)] text-[#20242a] outline-none transition placeholder:text-[#9b9a94] focus:border-[#6f93b8] focus:ring-4 focus:ring-[#d7e5f3]"
         value={password}
         onChange={(e) => {
           setPassword(e.target.value);
