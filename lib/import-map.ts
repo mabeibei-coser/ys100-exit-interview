@@ -94,6 +94,19 @@ function cell(row: unknown[], idx: number | undefined): string | null {
   return s === "" ? null : s;
 }
 
+/** 日期统一成 YYYY-MM-DD。Excel 常导出成美式 M/D/YY（5/11/26）或 YYYY/M/D，统一掉避免歧义；其它格式原样保留。 */
+export function normDate(s: string | null): string | null {
+  if (!s) return s;
+  const md = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})$/); // M/D/YY 或 M/D/YYYY
+  if (md) {
+    const yr = md[3].length === 2 ? "20" + md[3] : md[3];
+    return `${yr}-${md[1].padStart(2, "0")}-${md[2].padStart(2, "0")}`;
+  }
+  const ymd = s.match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})$/); // YYYY/M/D
+  if (ymd) return `${ymd[1]}-${ymd[2].padStart(2, "0")}-${ymd[3].padStart(2, "0")}`;
+  return s;
+}
+
 /** 年龄数字 → 年龄段（与 lib/schema.ts 的 AGE_BANDS 对齐） */
 function ageToBand(age: number): string {
   if (age < 26) return "25以下";
@@ -154,8 +167,8 @@ export function buildTargets(
       line: cell(row, map.line),
       age_band: ageBand,
       gender: cell(row, map.gender),
-      hire_date: cell(row, map.hire_date),
-      leave_date: cell(row, map.leave_date),
+      hire_date: normDate(cell(row, map.hire_date)),
+      leave_date: normDate(cell(row, map.leave_date)),
       tenure_months: tenure,
       leave_type: cell(row, map.leave_type),
       assigned_to: cell(row, map.assigned_to),

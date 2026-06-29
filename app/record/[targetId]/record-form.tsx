@@ -6,9 +6,7 @@ import {
   DIMS,
   GENDERS,
   AGE_BANDS,
-  LINES,
   CONTACT_STATUS,
-  LEAVE_TYPES,
   RETAINABLE,
   DESTINATIONS,
   type DimDef,
@@ -75,7 +73,7 @@ export default function RecordForm({
     tenure_months: pre("tenure_months", ""),
     interviewer: src["interviewer"] ?? interviewerName,
     contact_status: pre("contact_status"),
-    leave_type: pre("leave_type"),
+    leave_type: pre("leave_type", "主动辞职"), // 离职类型字段已从表单移除；默认主动辞职（回访名单仅主动离职），报告据此统计
     retainable: pre("retainable"),
     destination: pre("destination"),
     top_dim: pre("top_dim"),
@@ -267,14 +265,6 @@ export default function RecordForm({
               <Field label="岗位">
                 <input className="input" value={str(f.position)} onChange={(e) => set("position", e.target.value)} />
               </Field>
-              <Field label="条线">
-                <select className="input" value={str(f.line)} onChange={(e) => set("line", e.target.value)}>
-                  <option value="">—</option>
-                  {LINES.map((l) => (
-                    <option key={l} value={l}>{l}</option>
-                  ))}
-                </select>
-              </Field>
               <Field label="年龄段">
                 <select className="input" value={str(f.age_band)} onChange={(e) => set("age_band", e.target.value)}>
                   <option value="">—</option>
@@ -296,10 +286,6 @@ export default function RecordForm({
                 <input className="input bg-[var(--secondary)]" value={str(f.interviewer)} readOnly />
               </Field>
             </div>
-            <Field label="离职类型" className="mt-3">
-              <Radio options={LEAVE_TYPES} value={str(f.leave_type)} onChange={(v) => set("leave_type", v)} />
-              <p className="text-xs text-[var(--text3)] mt-1">被动离职（辞退/到期/撤场）不进原因分析</p>
-            </Field>
           </Section>
 
           {/* 开口提示 */}
