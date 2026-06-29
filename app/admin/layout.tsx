@@ -19,6 +19,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             <Tab href="/admin/records">明细总表</Tab>
             <Tab href="/admin/import">导入派工</Tab>
             {s.isSuper && <Tab href="/admin/staff">人员与权限</Tab>}
+            {s.isSuper && <Tab href="/admin/reset">数据还原</Tab>}
           </nav>
         </div>
         <div className="flex items-center gap-4">

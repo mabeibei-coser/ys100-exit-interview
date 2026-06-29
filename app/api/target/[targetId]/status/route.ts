@@ -32,6 +32,16 @@ export async function POST(req: Request, { params }: { params: Promise<{ targetI
     return NextResponse.json({ ok: false, error: "状态不合法" }, { status: 400 });
   }
 
-  db.prepare("UPDATE targets SET call_status = ?, updated_at = ? WHERE id = ?").run(status, now(), tid);
+  const ts = now();
+  if (status === "unreachable") {
+    // 标记未接通＝该人本次回访作废：删掉访谈记录（六维/原话等），报告随之同步移除该人
+    const tx = db.transaction(() => {
+      db.prepare("DELETE FROM interviews WHERE target_id = ?").run(tid);
+      db.prepare("UPDATE targets SET call_status = ?, interview_id = NULL, updated_at = ? WHERE id = ?").run(status, ts, tid);
+    });
+    tx();
+  } else {
+    db.prepare("UPDATE targets SET call_status = ?, updated_at = ? WHERE id = ?").run(status, ts, tid);
+  }
   return NextResponse.json({ ok: true });
 }

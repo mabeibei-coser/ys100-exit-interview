@@ -184,6 +184,7 @@ export default function RecordForm({
   }
 
   async function markUnreachable() {
+    if (!window.confirm("标记「未接通」会清空这个人已填的访谈记录，并从报告里移除该人。确定吗？")) return;
     setBusy(true);
     try {
       await fetch(withBase(`/api/target/${targetId}/status`), {
