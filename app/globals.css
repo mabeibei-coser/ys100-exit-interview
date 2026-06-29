@@ -172,6 +172,17 @@ body {
   border-color: var(--brand);
 }
 
+/* 登录页姓名下拉：select 用 text-transparent 做"透明叠加在背景图占位符上"，
+   但下拉里的 <option>/<optgroup> 文字会继承这个 transparent → 整列看不见。
+   强制选项/分组标签用可见色（不影响 select 自身的透明叠加）。 */
+#login-name option {
+  color: #20242a;
+}
+#login-name optgroup {
+  color: #6b6a64;
+  font-weight: 600;
+}
+
 /* 多选/单选 chip */
 .chip {
   border: 1px solid var(--border);
