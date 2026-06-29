@@ -68,7 +68,6 @@ export const DIMS: readonly DimDef[] = [
     key: "appraisal", no: "④", name: "考核评价", short: "考核", tag: "工作压力",
     bucket: "press", color: "#D85A30",
     question: "咱们每个月的考核打分，主管会跟您说明白扣分原因吗？有没有觉得不合理、或者私下罚款的情况？",
-    note: "⚠ 仅管家 + 工程问；秩序岗跳过本维",
     onlyLines: ["管家", "工程"],
     points: [
       { key: "appraisal_nodetail", label: "扣分不说明原因 / 不沟通" },
